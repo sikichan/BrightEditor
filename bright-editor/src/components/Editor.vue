@@ -33,8 +33,8 @@ export default {
   data() {
     return {
       emojiVisible: false,
-      selection: 0,
-      content: ''
+      content: '',
+      lastRange: 0
     }
   },
   mounted() {
@@ -53,20 +53,26 @@ export default {
     getFocus() {
       const el = this.$refs.editorContent
       el.focus()
-      this.selection = getSelection().anchorOffset
+      this.markRange()
     },
     onKeyup() {
-      this.selection = getSelection().anchorOffset
+      this.markRange()
+    },
+    markRange() {
+      const sel = getSelection()
+      if (sel.rangeCount > 0) {
+        this.lastRange = sel.getRangeAt(0)
+      } else {
+        this.lastRange = document.createRange()
+      }
     },
     onSelectEmoji(code) {
-      const el = this.$refs.editorContent
-      el.focus()
       const sel = getSelection()
-      const range = sel.getRangeAt(0)
+      const range = this.lastRange
       const textNode = document.createTextNode(code)
       range.insertNode(textNode)
       sel.removeAllRanges()
-      range.collapse()
+      range.collapse(false)
       sel.addRange(range)
       this.emojiVisible = false
     },
