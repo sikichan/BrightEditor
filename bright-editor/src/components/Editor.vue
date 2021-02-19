@@ -10,6 +10,10 @@
         <Emoji @on-select="onSelectEmoji" />
         <EmojiIcon slot="reference" class="editor-tools-icon" />
       </el-popover>
+      <!-- 图片上传 -->
+      <PhotoIcon class="editor-tools-icon" @click.native="$refs['photo'].click()" />
+      <!-- 文件上传 -->
+      <FileIcon class="editor-tools-icon" @click.native="$refs['file'].click()" />
     </div>
     <div
       ref="editorContent"
@@ -20,21 +24,47 @@
       @focus="onFocus"
       @click="getFocus"
     >{{ content }}</div>
+    <el-button style="align-self:flex-start" @click="send">发送</el-button>
+    <input ref="photo" type="file" style="display:none;" @change="getPhoto">
+    <input ref="file" type="file" style="display:none;" @change="getFile">
+    <el-dialog
+      title="发送文件"
+      :visible.sync="file.visible"
+      width="460px"
+    >
+      <CommonIcon :file="file" />
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="file.visible = false">取 消</el-button>
+        <el-button type="primary" @click="file.visible = false">确 定</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 <script>
 import Emoji from './Emoji'
 import EmojiIcon from './Icon/EmojiIcon'
+import PhotoIcon from './Icon/PhotoIcon'
+import FileIcon from './Icon/FileIcon'
+import { fileSize } from '@/utils'
 export default {
   components: {
     Emoji,
-    EmojiIcon
+    EmojiIcon,
+    PhotoIcon,
+    FileIcon,
+    CommonIcon: () => import('./Icon/CommonIcon')
   },
   data() {
     return {
       emojiVisible: false,
       content: '',
-      lastRange: 0
+      lastRange: 0,
+      file: {
+        visible: false,
+        src: null,
+        name: '',
+        ext: ''
+      }
     }
   },
   mounted() {
@@ -44,11 +74,42 @@ export default {
     this.onBlur()
   },
   methods: {
+    send() {
+      const content = this.$refs['editorContent'].innerHTML
+      console.log(content)
+    },
+    getPhoto() {
+      const photo = this.$refs['photo'].files[0]
+      const obj = URL.createObjectURL(photo)
+      console.log(obj)
+      const sel = getSelection()
+      const range = this.lastRange
+      const photoNode = document.createElement('img')
+      photoNode.src = obj
+      photoNode.style.width = '100px'
+      range.insertNode(photoNode)
+      sel.removeAllRanges()
+      range.collapse(false)
+      sel.addRange(range)
+      this.emojiVisible = false
+    },
+    getFile() {
+      const file = this.$refs['file'].files[0]
+      console.log(file)
+      const idx = file.name.lastIndexOf('.')
+      this.file = {
+        visible: true,
+        name: file.name,
+        ext: file.name.slice(idx, file.name.length),
+        size: fileSize(file.size)
+      }
+      this.file.visible = true
+    },
     onFocus() {
-      document.addEventListener('mousedown', this.preventDefault)
+      // document.addEventListener('mousedown', this.preventDefault)
     },
     onBlur() {
-      document.removeEventListener('mousedown', this.preventDefault)
+      // document.removeEventListener('mousedown', this.preventDefault)
     },
     getFocus() {
       const el = this.$refs.editorContent
@@ -110,9 +171,10 @@ $borderColor: #f6f6f6;
   }
   .editor-content {
     outline: none;
-    padding: 12px;
+    padding: 12px 12px 50px 12px;
     width: 100%;
     height: 200px;
+    overflow-y: scroll;
   }
 }
 </style>
